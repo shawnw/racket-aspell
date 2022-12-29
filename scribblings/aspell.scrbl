@@ -27,13 +27,13 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
  Start a new aspell instance. If any of the options are false, values are chosen by aspell from its defaults and the current locale. Generally this is the desired behavior.
  See its documentation for details.
 
- @tt{aspell dump modes} will give the possible values for the @code{#:mode} option.
+ @tt{aspell dump modes} from a command line will give the possible values for the @code{#:mode} option.
 
  }
 
 @defproc[(close-aspell [speller aspell?]) void?]{
 
- Close a running aspell instance. It should not be used after calling this function.
+ Close a running aspell instance and resources associated with it. It should not be used after calling this function.
 
 }
 
@@ -44,7 +44,7 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
  Spell check the given @code{text} and return a list of misspelled words. Each element of the list is itself a list. The first element is the misspelled word, the second is its position from the start of the line it's in (@bold{Not} the start of the string if there are multiple lines), and any remaining elements are suggested correct words, if any.
 
  Care must be taken that any single line isn't larger than your system's pipe buffer space.
-                       
+
 }
 
 @section{Dictionaries}
