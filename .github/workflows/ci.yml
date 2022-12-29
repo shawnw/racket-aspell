@@ -22,6 +22,7 @@ jobs:
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
       - name: Installing aspell and its dependencies
+        run: sudo apt install -y aspell
         run: raco pkg install --no-docs --auto --name aspell
       - name: Compiling aspell and building its docs
         run: raco setup --check-pkg-deps --unused-pkg-deps aspell
