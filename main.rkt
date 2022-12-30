@@ -22,7 +22,8 @@
  (contract-out
   [aspell? predicate/c]
   [aspell-active? (-> aspell? boolean?)]
-  [open-aspell (->* () (#:dict (or/c string? #f)
+  [open-aspell (->* () (#:aspell-path (or/c path-string? #f)
+                        #:dict (or/c string? #f)
                         #:personal-dict (or/c path-string? #f)
                         #:dict-dir (or/c path-string? #f)
                         #:lang (or/c string? #f)
@@ -41,10 +42,11 @@
 (struct aspell (process stdin stdout)
   #:extra-constructor-name make-aspell)
 
-(define (open-aspell #:dict [master-dict #f] #:personal-dict [personal-dict #f] #:dict-dir [dict-dir #f] #:lang [lang #f]
+(define (open-aspell #:aspell-path [aspell-path (find-executable-path "aspell")] #:dict [master-dict #f] #:personal-dict [personal-dict #f] #:dict-dir [dict-dir #f] #:lang [lang #f]
                      #:mode [mode 'url] #:ignore-case [ignore-case #f])
-  (let*-values ([(aspell-path) (find-executable-path "aspell")]
-                [(args) (filter-map (lambda (arg)
+  (unless aspell-path
+    (raise-user-error 'open-aspell "No aspell binary found"))
+  (let*-values ([(args) (filter-map (lambda (arg)
                                       (let ([opt (car arg)]
                                             [val (cdr arg)])
                                         (cond
@@ -124,23 +126,26 @@
     result))
   
 (module+ test
-  (define speller (open-aspell #:lang "en_US"))
-  ;(displayln (aspell-language speller))
 
-  (check-true (aspell-active? speller))
-  
-  (define sentence "The quick red fox juped over the lazy brown dog.")
-  (define misspelled (aspell-check speller sentence))
-  ;(writeln misspelled)
-  (check-equal? (length misspelled) 1)
-  (check-equal? (caar misspelled) "juped")
+  (define aspell-path (find-executable-path "aspell"))
+  ; Only run tests when aspell is present
+  (when aspell-path
+    (define speller (open-aspell #:aspell-path aspell-path #:lang "en_US"))
+    ;(displayln (aspell-language speller))
 
-  (aspell-add-word speller "juped" 'session)
-  (check-equal? (aspell-get-dictionary speller 'session) '("juped"))
+    (check-true (aspell-active? speller))
 
-  (check-equal? (aspell-check speller sentence) '())
+    (define sentence "The quick red fox juped over the lazy brown dog.")
+    (define misspelled (aspell-check speller sentence))
+    ;(writeln misspelled)
+    (check-equal? (length misspelled) 1)
+    (check-equal? (caar misspelled) "juped")
 
-  (close-aspell speller)
-  (check-false (aspell-active? speller))
+    (aspell-add-word speller "juped" 'session)
+    (check-equal? (aspell-get-dictionary speller 'session) '("juped"))
 
+    (check-equal? (aspell-check speller sentence) '())
+
+    (close-aspell speller)
+    (check-false (aspell-active? speller)))
   )

@@ -7,7 +7,7 @@
 
 @defmodule[aspell]
 
-Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-checking text from your programs. The @tt{aspell} program must be present in your path to use this module.
+Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-checking text from your programs. The @tt{aspell} program must be present in your path, or a path to it explicitly provided.
 
 @section{Controlling aspell}
 
@@ -17,7 +17,8 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
 
 }
 
-@defproc[(open-aspell [#:dict dict (or/c string? #f) #f]
+@defproc[(open-aspell [#:aspell-path aspell-path path-string? (find-executable-path "aspell")]
+                      [#:dict dict (or/c string? #f) #f]
                       [#:personal-dict personal-dict (or/c path-string? #f) #f]
                       [#:dict-dir dict-dir (or/c path-string? #f) #f]
                       [#:lang lang (or/c string? #f) #f]
