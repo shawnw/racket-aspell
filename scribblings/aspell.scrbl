@@ -38,6 +38,12 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
 
 }
 
+@defthing[aspell-logger logger?]{
+
+ The logger object warnings and informational messages are sent to.
+
+}
+
 @section{Spell checking}
 
 @defproc[(aspell-check [speller aspell?] [text string?]) list?]{
