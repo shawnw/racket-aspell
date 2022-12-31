@@ -27,7 +27,7 @@
                         #:personal-dict (or/c path-string? #f)
                         #:dict-dir (or/c path-string? #f)
                         #:lang (or/c string? #f)
-                        #:mode symbol?
+                        #:mode (or/c symbol? #f)
                         #:ignore-case boolean?
                         )
                     aspell?)]
@@ -46,12 +46,12 @@
 (define aspell-logger (make-logger 'aspell))
 
 (define (log-stderr stderr)
-  (let ([line (read-line stderr)])
+  (let ([line (read-line stderr 'any)])
     (log-message aspell-logger 'warning line)
     (log-stderr stderr)))
 
 (define (open-aspell #:aspell-path [aspell-path (find-executable-path "aspell")] #:dict [master-dict #f] #:personal-dict [personal-dict #f] #:dict-dir [dict-dir #f] #:lang [lang #f]
-                     #:mode [mode 'url] #:ignore-case [ignore-case #f])
+                     #:mode [mode #f] #:ignore-case [ignore-case #f])
   (unless aspell-path
     (raise-user-error 'open-aspell "No aspell binary found"))
   (let*-values ([(args) (filter-map (lambda (arg)
@@ -80,7 +80,7 @@
     (file-stream-buffer-mode stdin 'none)
     (file-stream-buffer-mode stdout 'none)
     (file-stream-buffer-mode stderr 'none)
-    (read-line stdout) ; Read and discard banner line
+    (read-line stdout 'any) ; Read and discard banner line
     (write-bytes #"!\n" stdin) ; Set terse mode
     (make-aspell process stdin stdout stderr (thread (lambda () (log-stderr stderr))))))
 
@@ -98,7 +98,7 @@
 ;; Return the language being used
 (define (aspell-language a)
   (write-bytes #"$$l\n" (aspell-stdin a))
-  (read-line (aspell-stdout a)))
+  (read-line (aspell-stdout a 'any)))
 
 ;; Add a word to the personal or session dictionary
 (define (aspell-add-word a word [replacement 'personal])
@@ -110,7 +110,7 @@
 
 (define (aspell-get-dictionary a [dict-type 'personal])
   (fprintf (aspell-stdin a) "$$~A~%" (if (eq? dict-type 'session) "ps" "pp"))
-  (match (read-line (aspell-stdout a))
+  (match (read-line (aspell-stdout a) 'any)
     ("0:" '())
     ((pregexp #px"^\\d+: (.*)" (list _ words))
      (regexp-split #px",\\s+" words))))
@@ -121,7 +121,7 @@
   (void))
 
 (define (read-results a)
-  (for/list ([line (in-lines (aspell-stdout a))]
+  (for/list ([line (in-lines (aspell-stdout a) 'any)]
              #:break (string=? line "")
              #:when (not (string=? line "*")))
     (match line

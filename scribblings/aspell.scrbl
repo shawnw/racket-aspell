@@ -22,7 +22,7 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
                       [#:personal-dict personal-dict (or/c path-string? #f) #f]
                       [#:dict-dir dict-dir (or/c path-string? #f) #f]
                       [#:lang lang (or/c string? #f) #f]
-                      [#:mode mode symbol? 'url]
+                      [#:mode mode (or/c symbol? #f) #f]
                       [#:ignore-case ignore-case boolean? #f]) aspell?]{
 
  Start a new aspell instance. If any of the options are false, values are chosen by aspell from its defaults and the current locale. Generally this is the desired behavior.
