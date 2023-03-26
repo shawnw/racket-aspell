@@ -40,7 +40,7 @@
   [aspell-logger logger?]
   ))
 
-(struct aspell (process stdin stdout stderr error-logging-thread)
+(struct aspell (process stdin stdout stderr error-logging-thread custodian)
   #:extra-constructor-name make-aspell)
 
 (define aspell-logger (make-logger 'aspell))
@@ -54,35 +54,38 @@
                      #:mode [mode #f] #:ignore-case [ignore-case #f])
   (unless aspell-path
     (raise-user-error 'open-aspell "No aspell binary found"))
-  (let*-values ([(args) (filter-map (lambda (arg)
-                                      (let ([opt (car arg)]
-                                            [val (cdr arg)])
-                                        (cond
-                                          ((eq? val #f) #f)
-                                          ((eq? val #t) (format "--~a" opt))
-                                          ((path? val)
-                                           (format "--~a=~a" opt (path->string val)))
-                                          (else
-                                           (format "--~a=~a" opt val)))))
-                                    `((master . ,master-dict)
-                                      (personal . ,personal-dict)
-                                      (dict-dir . ,dict-dir)
-                                      (lang . ,lang)
-                                      (mode . ,mode)
-                                      (ignore-case . ,ignore-case)))]
-                [(process stdout stdin stderr)
-                 (apply subprocess #f #f #f aspell-path `(,@args "--encoding=utf-8" "--suggest" "pipe"))])
-    (unless (eq? (subprocess-status process) 'running)
-      (let ([errmsg (format "aspell failed to run, exit status ~A" (subprocess-status process))])
-        (displayln errmsg (current-error-port))
-        (log-message aspell-logger 'error errmsg)))
-    (log-message aspell-logger 'info "starting aspell")
-    (file-stream-buffer-mode stdin 'none)
-    (file-stream-buffer-mode stdout 'none)
-    (file-stream-buffer-mode stderr 'none)
-    (read-line stdout 'any) ; Read and discard banner line
-    (write-bytes #"!\n" stdin) ; Set terse mode
-    (make-aspell process stdin stdout stderr (thread (lambda () (log-stderr stderr))))))
+  (define aspell-custodian (make-custodian))
+  (parameterize ([current-custodian aspell-custodian]
+                 [current-subprocess-custodian-mode 'kill])
+    (let*-values ([(args) (filter-map (lambda (arg)
+                                        (let ([opt (car arg)]
+                                              [val (cdr arg)])
+                                          (cond
+                                            ((eq? val #f) #f)
+                                            ((eq? val #t) (format "--~a" opt))
+                                            ((path? val)
+                                             (format "--~a=~a" opt (path->string val)))
+                                            (else
+                                             (format "--~a=~a" opt val)))))
+                                      `((master . ,master-dict)
+                                        (personal . ,personal-dict)
+                                        (dict-dir . ,dict-dir)
+                                        (lang . ,lang)
+                                        (mode . ,mode)
+                                        (ignore-case . ,ignore-case)))]
+                  [(process stdout stdin stderr)
+                   (apply subprocess #f #f #f aspell-path `(,@args "--encoding=utf-8" "--suggest" "pipe"))])
+      (unless (eq? (subprocess-status process) 'running)
+        (let ([errmsg (format "aspell failed to run, exit status ~A" (subprocess-status process))])
+          (displayln errmsg (current-error-port))
+          (log-message aspell-logger 'error errmsg)))
+      (log-message aspell-logger 'info "starting aspell")
+      (file-stream-buffer-mode stdin 'none)
+      (file-stream-buffer-mode stdout 'none)
+      (file-stream-buffer-mode stderr 'none)
+      (read-line stdout 'any) ; Read and discard banner line
+      (write-bytes #"!\n" stdin) ; Set terse mode
+      (make-aspell process stdin stdout stderr (thread (lambda () (log-stderr stderr))) aspell-custodian))))
 
 (define (aspell-active? a)
   (eq? (subprocess-status (aspell-process a)) 'running))
@@ -93,7 +96,8 @@
   (close-input-port (aspell-stdout a))
   (kill-thread (aspell-error-logging-thread a))
   (close-input-port (aspell-stderr a))
-  (subprocess-wait (aspell-process a)))
+  (subprocess-wait (aspell-process a))
+  (custodian-shutdown-all (aspell-custodian a)))
 
 ;; Return the language being used
 (define (aspell-language a)
@@ -141,7 +145,7 @@
              [result (in-list (spellcheck-line a line))]
              #:when (not (null? result)))
     result))
-  
+
 (module+ test
 
   (define aspell-path (find-executable-path "aspell"))
