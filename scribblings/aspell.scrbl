@@ -7,9 +7,12 @@
 
 @defmodule[aspell]
 
-Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-checking text from your programs. The @tt{aspell} program must be present in your path, or a path to it explicitly provided.
+Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-checking text from your programs.
+The @tt{aspell} program must be present in your path, or a path to it explicitly provided.
 
-@section{Controlling aspell}
+@section{Using aspell}
+
+@subsection{Controlling aspell}
 
 @defproc[(aspell? [obj any/c]) boolean?]{
 
@@ -17,7 +20,7 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
 
 }
 
-@defproc[(open-aspell [#:aspell-path aspell-path path-string? (find-executable-path "aspell")]
+@defproc[(open-aspell [#:aspell-path aspell-path path-string? (aspell-executable-path)]
                       [#:dict dict (or/c string? #f) #f]
                       [#:personal-dict personal-dict (or/c path-string? #f) #f]
                       [#:dict-dir dict-dir (or/c path-string? #f) #f]
@@ -44,7 +47,7 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
 
 }
 
-@section{Spell checking}
+@subsection{Spell checking}
 
 @defproc[(aspell-check [speller aspell?] [text string?]) list?]{
 
@@ -54,7 +57,7 @@ Provides an interface to @hyperlink["http://aspell.net/"]{GNU ASpell} for spell-
 
 }
 
-@section{Dictionaries}
+@subsection{Dictionaries}
 
 In addition to the master dictionary, aspell supports personal dictionaries and a temporary session dictionary of accepted words. The personal dictionary can include suggested replacment words for given misspellings, or just words to accept as correctly spelled.
 
@@ -76,7 +79,7 @@ In addition to the master dictionary, aspell supports personal dictionaries and 
 
 }
 
-@section{Other functions}
+@subsection{Other functions}
 
 @defproc[(aspell-active? [speller aspell?]) boolean?]{
 
@@ -89,3 +92,21 @@ In addition to the master dictionary, aspell supports personal dictionaries and 
  Return the language being used for spell checking.
 
  }
+
+@section{Using other spell checkers}
+
+While this module is intended primarly for use with aspell, it can work with other spell checkers that have a compatible command line interface
+- the traditional ispell and @hyperlink["https://hunspell.github.io/"]{hunspell} are also supported, albeit with reduced functionality. To use them, set the
+@code{aspell-compatibility-mode} parameter and pass the appropriate @tt{:aspell-path} argument to @code{open-aspell} or set @code{aspell-executable-path}.
+
+@defparam[aspell-executable-path aspell-path (or/c path-string? #f) #:value (find-executable-path "aspell")]{
+
+ The default path to a spell checker binary.
+
+ }
+
+@defparam[aspell-compatibility-mode mode (or/c 'aspell 'ispell 'hunspell) #:value 'aspell]{
+
+Set to the spell checker being used if it's not aspell.
+
+}
